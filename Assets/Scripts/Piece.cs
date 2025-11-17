@@ -130,6 +130,7 @@ public class Piece : MonoBehaviour
 
     private void Lock()
     {
+        board.UpdateBag();
         board.Set(this, true);
         board.ClearLines();
         board.SpawnPiece();
@@ -165,7 +166,7 @@ public class Piece : MonoBehaviour
         ApplyRotationMatrix(direction);
 
         // Revert the rotation if the wall kick tests fail
-        if (!TestWallKicks(rotationIndex, direction))
+        if (!TestWallKicks(originalRotation, direction))
         {
             rotationIndex = originalRotation;
             ApplyRotationMatrix(-direction);

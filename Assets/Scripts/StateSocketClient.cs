@@ -15,14 +15,17 @@ public class StateSocketClient : MonoBehaviour
 
     public int rows = 20;
     public int cols = 10;
-    public int linesCleared = 0;
-    private int[] grid;
+    private int[] contour;
+    private char currentPiece;
+    private int normalLinesCleared;
+    private int garbageLinesCleared;
     private bool isConnected = false;
 
     void Awake()
     {
-        grid = new int[rows * cols];
-        linesCleared = 0;
+        contour = new int[rows * cols];
+        normalLinesCleared = 0;
+        garbageLinesCleared = 0;
         // InvokeRepeating(nameof(SendData), 0f, 0f); // send every frame
     }
 
@@ -51,9 +54,12 @@ public class StateSocketClient : MonoBehaviour
         }
 
         // Send array as JSON
-        grid = board.GetGridState(); // Assume this method returns a flattened int array of the grid state
-        linesCleared = board.GetLinesCleared(); // Assume this method returns the number of lines cleared
-        string json = JsonUtility.ToJson(new GridData(grid, linesCleared));
+        contour = board.GetContour(); // Assume this method returns a flattened int array of the contour state
+        currentPiece = board.GetCurrentPieceChar(); // Assume this method returns the current piece as a char
+        normalLinesCleared = board.GetNormalLinesCleared(); // Assume this method returns the number of lines cleared
+        garbageLinesCleared = board.GetGarbageLinesCleared(); // Assume this method returns the number of garbage lines cleared
+
+        string json = JsonUtility.ToJson(new StateData(contour, currentPiece, normalLinesCleared, garbageLinesCleared));
         writer.Write(json + "\n");
         Debug.Log(json);
         writer.Flush();
@@ -69,14 +75,18 @@ public class StateSocketClient : MonoBehaviour
 
 
 [System.Serializable]
-public class GridData
+public class StateData
 {
-    public int[] grid;
-    public int linesCleared;
+    public int[] contour;
+    public char currentPiece;
+    public int normalLinesCleared;
+    public int garbageLinesCleared;
 
-    public GridData(int[] grid, int linesCleared)
+    public StateData(int[] contour, char currentPiece, int normalLinesCleared, int garbageLinesCleared)
     {
-        this.grid = grid;
-        this.linesCleared = linesCleared;
+        this.contour = contour;
+        this.currentPiece = currentPiece;
+        this.normalLinesCleared = normalLinesCleared;
+        this.garbageLinesCleared = garbageLinesCleared; 
     }
 }

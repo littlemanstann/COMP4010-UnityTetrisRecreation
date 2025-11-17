@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "unity-tetris-tutorial.sln"
+    "dotnet.defaultSolution": "COMP4010-UnityTetrisRecreation.sln"
 }
