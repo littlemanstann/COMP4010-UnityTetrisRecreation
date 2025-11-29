@@ -1055,6 +1055,7 @@ MonoBehaviour:
   hasUpgradedFromAgentParameters: 1
   MaxStep: 1
   board: {fileID: 1887623656}
+  piece: {fileID: 1887623655}
   decisionRepeat: 1
 --- !u!114 &911910783
 MonoBehaviour:
@@ -1085,6 +1086,7 @@ MonoBehaviour:
   TeamId: 0
   m_UseChildSensors: 1
   m_UseChildActuators: 1
+  m_DeterministicInference: 0
   m_ObservableAttributeHandling: 0
 --- !u!1 &936830108
 GameObject:
@@ -1257,7 +1259,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -208.78, y: 183.4}
+  m_AnchoredPosition: {x: -208.78003, y: 183.4}
   m_SizeDelta: {x: -155.97, y: -640.75}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &953474778
@@ -1671,6 +1673,7 @@ GameObject:
   - component: {fileID: 1887623653}
   - component: {fileID: 1887623656}
   - component: {fileID: 1887623655}
+  - component: {fileID: 1887623657}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -1756,7 +1759,21 @@ MonoBehaviour:
   sevenBag: 1
   normalLinesCleared: 0
   garbageLinesCleared: 0
+  gameOver: 0
+  lastReward: 0
   socketClient: {fileID: 1919958431}
+--- !u!114 &1887623657
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1887623652}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1f52f4de90665b4fb9ea43920b898a8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoardAgent
 --- !u!1 &1919329891
 GameObject:
   m_ObjectHideFlags: 0
@@ -1918,7 +1935,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -200.09, y: -174.28}
+  m_AnchoredPosition: {x: -200.08997, y: -174.28003}
   m_SizeDelta: {x: 44.53, y: -398.89}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1964830991

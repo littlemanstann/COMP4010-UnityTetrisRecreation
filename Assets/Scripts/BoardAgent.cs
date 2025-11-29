@@ -4,15 +4,15 @@ using UnityEngine;
 
 public class BoardAgent : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    private Board board; // assign in inspector
+    private Piece piece; // current active piece
+
+    void Awake()
     {
-        
+        board = GetComponent<Board>();
+        piece = GetComponent<Piece>();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+
+
 }

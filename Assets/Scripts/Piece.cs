@@ -119,7 +119,7 @@ public class Piece : MonoBehaviour
         }
     }
 
-    private void HardDrop()
+    public void HardDrop()
     {
         while (Move(Vector2Int.down)) {
             continue;
@@ -136,7 +136,7 @@ public class Piece : MonoBehaviour
         board.SpawnPiece();
     }
 
-    private bool Move(Vector2Int translation)
+    public bool Move(Vector2Int translation)
     {
         Vector3Int newPosition = position;
         newPosition.x += translation.x;
@@ -155,7 +155,7 @@ public class Piece : MonoBehaviour
         return valid;
     }
 
-    private void Rotate(int direction)
+    public bool Rotate(int direction)
     {
         // Store the current rotation in case the rotation fails
         // and we need to revert
@@ -170,7 +170,11 @@ public class Piece : MonoBehaviour
         {
             rotationIndex = originalRotation;
             ApplyRotationMatrix(-direction);
+            return false;
         }
+        
+        // otherwise return true
+        return true;
     }
 
     private void ApplyRotationMatrix(int direction)
