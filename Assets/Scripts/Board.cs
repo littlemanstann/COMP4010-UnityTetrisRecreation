@@ -66,7 +66,6 @@ public class Board : MonoBehaviour
     public void SpawnPiece()
     {
         TetrominoData data = tetrominoes[0];
-        gameOver = false;
 
         // If using 7-bag system, ensure all pieces are used before repeating
         if (sevenBag)
@@ -123,6 +122,13 @@ public class Board : MonoBehaviour
 
         // Reset garbage
         CreateGarbageLines(5);
+
+        // Reset game over flag
+        gameOver = false;
+
+        // Reset line cleared counts
+        normalLinesCleared = 0;
+        garbageLinesCleared = 0;
     }
 
     public void Set(Piece piece, bool locked)

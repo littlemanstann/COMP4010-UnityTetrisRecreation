@@ -27,6 +27,7 @@ public class TetrisAgent : Agent
         }
     }
 
+    /*
     public override void OnEpisodeBegin()
     {
         if (board != null)
@@ -34,6 +35,7 @@ public class TetrisAgent : Agent
             board.GameOver();
         }
     }
+    */
 
     public override void CollectObservations(VectorSensor sensor)
     {
@@ -96,10 +98,15 @@ public class TetrisAgent : Agent
         {
             AddReward(rewardFromBoard);
         }
+    }
 
+    private void FixedUpdate()
+    {
         // End episode if game over
         if (board.gameOver)
         {
+            SetReward(-1f);
+            board.GameOver();
             EndEpisode();
         }
     }
@@ -118,4 +125,13 @@ public class TetrisAgent : Agent
 
         discrete[0] = a;
     }*/
+
+    void OnApplicationQuit()
+    {
+        try
+        {
+            Academy.Instance.Dispose();   // closes all ML-Agents channels
+        }
+        catch { }
+    }
 }

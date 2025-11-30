@@ -48,6 +48,10 @@ public class Piece : MonoBehaviour
     {
         board.Clear(this);
 
+        if (board.gameOver) {
+            return;
+        }
+
         // We use a timer to allow the player to make adjustments to the piece
         // before it locks in place
         lockTime += Time.deltaTime;
