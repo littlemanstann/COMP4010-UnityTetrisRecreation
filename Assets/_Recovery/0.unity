@@ -1016,7 +1016,6 @@ GameObject:
   - component: {fileID: 911910781}
   - component: {fileID: 911910783}
   - component: {fileID: 911910782}
-  - component: {fileID: 911910784}
   m_Layer: 0
   m_Name: TetrisAgent
   m_TagString: Untagged
@@ -1057,6 +1056,7 @@ MonoBehaviour:
   MaxStep: 1
   board: {fileID: 1887623656}
   piece: {fileID: 1887623655}
+  decisionRepeat: 1
 --- !u!114 &911910783
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1088,21 +1088,6 @@ MonoBehaviour:
   m_UseChildActuators: 1
   m_DeterministicInference: 0
   m_ObservableAttributeHandling: 0
---- !u!114 &911910784
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 911910780}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.DecisionRequester
-  DecisionPeriod: 1
-  DecisionStep: 0
-  TakeActionsBetweenDecisions: 1
 --- !u!1 &936830108
 GameObject:
   m_ObjectHideFlags: 0
@@ -1884,7 +1869,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1919958431
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -340,6 +340,28 @@ public class Board : MonoBehaviour
 
         return grid;
     }
+public void ResetForEpisode()
+{
+    // Clear all tiles from the board
+    tilemap.ClearAllTiles();
+
+    // Clear active piece positions
+    activePositions.Clear();
+
+    // Recreate initial garbage lines (same as Awake)
+    CreateGarbageLines(5);
+
+    // Reset counters
+    normalLinesCleared = 0;
+    garbageLinesCleared = 0;
+
+    // Clear game over flag
+    gameOver = false;
+
+    // Spawn a fresh piece
+    SpawnPiece();
+}
+
 
     /// <summary>
     /// Functions for getting state data to send to Python server

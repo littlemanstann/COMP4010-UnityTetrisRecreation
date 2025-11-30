@@ -903,7 +903,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.814209, y: 0.000015258789}
+  m_AnchoredPosition: {x: 0.8142395, y: 0.000015258789}
   m_SizeDelta: {x: -421.45, y: -0.000030518}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &817202961
@@ -1057,6 +1057,7 @@ MonoBehaviour:
   MaxStep: 1
   board: {fileID: 1887623656}
   piece: {fileID: 1887623655}
+  decisionRepeat: 1
 --- !u!114 &911910783
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1070,7 +1071,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_BrainParameters:
-    VectorObservationSize: 203
+    VectorObservationSize: 12
     NumStackedVectorObservations: 1
     m_ActionSpec:
       m_NumContinuousActions: 0

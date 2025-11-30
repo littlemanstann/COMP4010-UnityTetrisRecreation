@@ -7,9 +7,9 @@ using Unity.MLAgents.Policies;
 [RequireComponent(typeof(BehaviorParameters))]
 public class TetrisAgent : Agent
 {
+    [Header("References")]
     public Board board; // assign in inspector
     public Piece piece; // current active piece
-    public int decisionRepeat = 1; // how many FixedUpdate frames per decision (or use DecisionRequester)
 
     // Action mapping:
     // 0 = No-op
@@ -25,14 +25,22 @@ public class TetrisAgent : Agent
         {
             Debug.LogError("TetrisAgent: Board reference not set.");
         }
+
+        if (piece == null)
+        {
+            Debug.LogError("TetrisAgent: Piece reference not set.");
+        }
     }
 
+    // If you have a proper reset function on your Board, you can use this:
     /*
     public override void OnEpisodeBegin()
     {
         if (board != null)
         {
-            board.GameOver();
+            // TODO: call your own reset / restart logic here, e.g.:
+            // board.ResetBoard();
+            // board.SpawnNewPiece();
         }
     }
     */
@@ -42,28 +50,40 @@ public class TetrisAgent : Agent
         if (board == null) return;
 
         // 1) Flattened board grid
-        int[] grid = board.GetContour(); // length = width*height
+        int[] grid = board.GetContour(); // length = width * height
         for (int i = 0; i < grid.Length; i++)
         {
-            // Send as normalized float. Values 0..3 -> divide by 3.
+            // Values assumed in 0..3 -> normalize
             sensor.AddObservation(grid[i] / 3.0f);
         }
 
         // 2) Current piece id (one integer normalized)
-        int pieceId = board.GetCurrentPieceId(); // -1..6
-        sensor.AddObservation((pieceId + 1) / 8.0f); // normalize small range
+        int pieceId = board.GetCurrentPieceId(); // e.g., -1..6
+        sensor.AddObservation((pieceId + 1) / 8.0f);
 
-        // 3) Optional: counts of lines cleared (normalized)
+        // 3) Counts of lines cleared (normalized)
         sensor.AddObservation(board.GetNormalLinesCleared() / 100.0f);
         sensor.AddObservation(board.GetGarbageLinesCleared() / 100.0f);
     }
 
     public override void OnActionReceived(ActionBuffers actionBuffers)
     {
-        if (board == null) return;
-        int act = actionBuffers.DiscreteActions[0];
+        Debug.Log("TetrisAgent received an action!");
+        if (board == null || piece == null)
+            return;
 
-        float rewardFromBoard = 0f;
+        // If game is over, end the episode and bail out
+        if (board.gameOver)
+        {
+            Debug.Log("[DONE] Game Over triggered -> Ending episode");
+            SetReward(-1f);
+            EndEpisode();
+            return;
+        }
+
+        int act = actionBuffers.DiscreteActions[0];
+        Debug.Log("[ACT] Unity received action: " + act);
+
         bool didSomething = false;
 
         switch (act)
@@ -89,27 +109,31 @@ public class TetrisAgent : Agent
                 break;
         }
 
-        // Small time penalty to encourage progress
+        // Small time penalty to encourage faster clearing / avoiding stalling
         AddReward(-0.001f);
 
-        // get reward from board (lines, garbage)
-        rewardFromBoard = board.ConsumeReward();
-        if (rewardFromBoard != 0f)
+        // Get reward from board (lines cleared, etc.)
+        float rewardFromBoard = board.ConsumeReward();
+        if (Mathf.Abs(rewardFromBoard) > 0.0001f)
         {
+            Debug.Log("[REWARD] " + rewardFromBoard);
             AddReward(rewardFromBoard);
         }
+
+        // Optional: if a move failed, you could penalize it slightly
+        // if (!didSomething && act != 0)
+        // {
+        //     AddReward(-0.0005f);
+        // }
     }
 
-    private void FixedUpdate()
-    {
-        // End episode if game over
-        if (board.gameOver)
-        {
-            SetReward(-1f);
-            board.GameOver();
-            EndEpisode();
-        }
-    }
+
+
+
+    // We no longer need FixedUpdate to manage gameOver/end episode,
+    // since that is handled cleanly in OnActionReceived.
+    // ML-Agents will call OnActionReceived as long as a DecisionRequester
+    // is attached or you manually RequestDecision().
 
     // Optional: heuristic for debugging: map keyboard to actions
     /*
@@ -124,14 +148,6 @@ public class TetrisAgent : Agent
         else if (Input.GetKeyDown(KeyCode.Space)) a = 5; // hard drop
 
         discrete[0] = a;
-    }*/
-
-    void OnApplicationQuit()
-    {
-        try
-        {
-            Academy.Instance.Dispose();   // closes all ML-Agents channels
-        }
-        catch { }
     }
+    */
 }
