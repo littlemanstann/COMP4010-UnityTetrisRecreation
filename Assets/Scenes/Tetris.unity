@@ -1054,7 +1054,7 @@ MonoBehaviour:
   agentParameters:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
-  MaxStep: 1
+  MaxStep: 0
   board: {fileID: 1887623656}
   piece: {fileID: 1887623655}
 --- !u!114 &911910783
@@ -1736,10 +1736,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6570178d836e8642a13a0b983600cf3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  inputText: {fileID: 817202961}
-  stepDelay: 1
-  moveDelay: 0.1
-  lockDelay: 0.5
 --- !u!114 &1887623656
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -22,132 +22,78 @@ public class TetrisAgent : Agent
     public override void Initialize()
     {
         if (board == null)
-        {
             Debug.LogError("TetrisAgent: Board reference not set.");
-        }
-
         if (piece == null)
-        {
             Debug.LogError("TetrisAgent: Piece reference not set.");
-        }
     }
 
-    // If you have a proper reset function on your Board, you can use this:
-    /*
     public override void OnEpisodeBegin()
     {
+        Debug.Log("[AGENT] OnEpisodeBegin called");
+
         if (board != null)
         {
-            // TODO: call your own reset / restart logic here, e.g.:
-            // board.ResetBoard();
-            // board.SpawnNewPiece();
+            board.ResetForEpisode();
+        }
+        else
+        {
+            Debug.LogError("[AGENT] Board reference NULL in OnEpisodeBegin!");
         }
     }
-    */
 
     public override void CollectObservations(VectorSensor sensor)
     {
         if (board == null) return;
 
         // 1) Flattened board grid
-        int[] grid = board.GetContour(); // length = width * height
+        int[] grid = board.GetContour();
         for (int i = 0; i < grid.Length; i++)
         {
-            // Values assumed in 0..3 -> normalize
             sensor.AddObservation(grid[i] / 3.0f);
         }
 
-        // 2) Current piece id (one integer normalized)
-        int pieceId = board.GetCurrentPieceId(); // e.g., -1..6
+        // 2) Current piece ID
+        int pieceId = board.GetCurrentPieceId();
         sensor.AddObservation((pieceId + 1) / 8.0f);
 
-        // 3) Counts of lines cleared (normalized)
+        // 3) Lines cleared
         sensor.AddObservation(board.GetNormalLinesCleared() / 100.0f);
         sensor.AddObservation(board.GetGarbageLinesCleared() / 100.0f);
     }
 
     public override void OnActionReceived(ActionBuffers actionBuffers)
     {
-        Debug.Log("TetrisAgent received an action!");
+        AddReward(-0.0005f);
+       // Debug.Log(">>> OnActionReceived CALLED with action " + actionBuffers.DiscreteActions[0]);
+
         if (board == null || piece == null)
             return;
 
-        // If game is over, end the episode and bail out
         if (board.gameOver)
         {
             Debug.Log("[DONE] Game Over triggered -> Ending episode");
-            SetReward(-1f);
+            AddReward(-10f);
             EndEpisode();
             return;
         }
 
         int act = actionBuffers.DiscreteActions[0];
-        Debug.Log("[ACT] Unity received action: " + act);
+       // Debug.Log("[ACT] Unity received action: " + act);
 
-        bool didSomething = false;
+        bool didSomething = piece.ApplyAction(act);
 
-        switch (act)
+
+
+        if(didSomething)
         {
-            case 0:
-                // no-op
-                break;
-            case 1:
-                didSomething = piece.Move(Vector2Int.left);
-                break;
-            case 2:
-                didSomething = piece.Move(Vector2Int.right);
-                break;
-            case 3:
-                didSomething = piece.Rotate(1);
-                break;
-            case 4:
-                didSomething = piece.Move(Vector2Int.down);
-                break;
-            case 5:
-                piece.HardDrop();
-                didSomething = true;
-                break;
+            AddReward(-0.001f); // small penalty for making a move
         }
 
-        // Small time penalty to encourage faster clearing / avoiding stalling
-        AddReward(-0.001f);
-
-        // Get reward from board (lines cleared, etc.)
-        float rewardFromBoard = board.ConsumeReward();
-        if (Mathf.Abs(rewardFromBoard) > 0.0001f)
+        float boardReward = board.ConsumeReward();
+        if (Mathf.Abs(boardReward) > 0.0001f)
         {
-            Debug.Log("[REWARD] " + rewardFromBoard);
-            AddReward(rewardFromBoard);
+            Debug.Log("[REWARD] " + boardReward);
+            AddReward(boardReward);
         }
-
-        // Optional: if a move failed, you could penalize it slightly
-        // if (!didSomething && act != 0)
-        // {
-        //     AddReward(-0.0005f);
-        // }
     }
-
-
-
-
-    // We no longer need FixedUpdate to manage gameOver/end episode,
-    // since that is handled cleanly in OnActionReceived.
-    // ML-Agents will call OnActionReceived as long as a DecisionRequester
-    // is attached or you manually RequestDecision().
-
-    // Optional: heuristic for debugging: map keyboard to actions
-    /*
-    public override void Heuristic(in ActionBuffers actionsOut)
-    {
-        var discrete = actionsOut.DiscreteActions;
-        int a = 0;
-        if (Input.GetKey(KeyCode.LeftArrow)) a = 1;
-        else if (Input.GetKey(KeyCode.RightArrow)) a = 2;
-        else if (Input.GetKey(KeyCode.UpArrow)) a = 3; // rotate
-        else if (Input.GetKey(KeyCode.DownArrow)) a = 4; // soft drop
-        else if (Input.GetKeyDown(KeyCode.Space)) a = 5; // hard drop
-
-        discrete[0] = a;
-    }
-    */
 }
