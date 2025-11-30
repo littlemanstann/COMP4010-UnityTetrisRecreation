@@ -22,6 +22,11 @@ public class Board : MonoBehaviour
     public int normalLinesCleared = 0;
     public int garbageLinesCleared = 0;
 
+    public bool gameOver = false;
+
+    // State reward to be consumed by agent
+    public float lastReward = 0f;
+
     // Reference to Socket Client to send data
     public StateSocketClient socketClient;
 
@@ -101,7 +106,8 @@ public class Board : MonoBehaviour
         }
         else
         {
-            GameOver();
+            gameOver = true;
+            // Notify Python server of game over
         }
     }
 
@@ -116,6 +122,13 @@ public class Board : MonoBehaviour
 
         // Reset garbage
         CreateGarbageLines(5);
+
+        // Reset game over flag
+        gameOver = false;
+
+        // Reset line cleared counts
+        normalLinesCleared = 0;
+        garbageLinesCleared = 0;
     }
 
     public void Set(Piece piece, bool locked)
@@ -291,6 +304,11 @@ public class Board : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// AI Agent Helper Functions
+    /// </summary>
+    /// <returns></returns>I th
+
 
     // HELPER FUNCTION: Get board grid as 1D array
     public int[] GetGridState()
@@ -322,6 +340,28 @@ public class Board : MonoBehaviour
 
         return grid;
     }
+public void ResetForEpisode()
+{
+    // Clear all tiles from the board
+    tilemap.ClearAllTiles();
+
+    // Clear active piece positions
+    activePositions.Clear();
+
+    // Recreate initial garbage lines (same as Awake)
+    CreateGarbageLines(5);
+
+    // Reset counters
+    normalLinesCleared = 0;
+    garbageLinesCleared = 0;
+
+    // Clear game over flag
+    gameOver = false;
+
+    // Spawn a fresh piece
+    SpawnPiece();
+}
+
 
     /// <summary>
     /// Functions for getting state data to send to Python server
@@ -359,6 +399,32 @@ public class Board : MonoBehaviour
         }
 
         return contour;
+    }
+
+    // Convenience helper: map piece enum char to an int ID (optional)
+    public int GetCurrentPieceId()
+    {
+        if (activePiece == null) return -1;
+        char c = GetCurrentPieceChar();
+        // Map based on 'I','O','T','S','Z','J','L' — modify to match your Tetromino enum
+        switch (c)
+        {
+            case 'I': return 0;
+            case 'O': return 1;
+            case 'T': return 2;
+            case 'S': return 3;
+            case 'Z': return 4;
+            case 'J': return 5;
+            case 'L': return 6;
+            default: return -1;
+        }
+    }
+
+    public float ConsumeReward()
+    {
+        float r = lastReward;
+        lastReward = 0f;
+        return r;
     }
 
     // STATE FUNCTION: Get current piece as char
