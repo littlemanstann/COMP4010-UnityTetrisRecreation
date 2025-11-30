@@ -43,10 +43,16 @@ public class TetrisAgent : Agent
 
     public override void CollectObservations(VectorSensor sensor)
     {
+        Debug.Log("[OBS] CollectObservations CALLED with grid size " + board.GetGridState().Length);
         if (board == null) return;
 
         // 1) Flattened board grid
-        int[] grid = board.GetContour();
+        //I CANNOT GET THIS TO WORK PROPERLY
+        //int[] grid = board.GetContour();
+
+        //full board
+        int[] grid = board.GetGridState();
+
         for (int i = 0; i < grid.Length; i++)
         {
             sensor.AddObservation(grid[i] / 3.0f);

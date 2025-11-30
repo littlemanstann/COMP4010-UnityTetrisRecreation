@@ -164,6 +164,7 @@ public class Board : MonoBehaviour
         // Reset line cleared counts
         normalLinesCleared = 0;
         garbageLinesCleared = 0;
+        lastReward = 0f;
     }
 
 
@@ -276,7 +277,6 @@ public class Board : MonoBehaviour
         RectInt bounds = Bounds;
         bool isGarbageLine = false;
 
-
         // Clear all tiles in the row
         for (int col = bounds.xMin; col < bounds.xMax; col++)
         {
@@ -288,7 +288,6 @@ public class Board : MonoBehaviour
             tilemap.SetTile(position, null);
         }
 
-
         // Shift every row above down one
         while (row < bounds.yMax)
         {
@@ -297,43 +296,28 @@ public class Board : MonoBehaviour
                 Vector3Int position = new Vector3Int(col, row + 1, 0);
                 TileBase above = tilemap.GetTile(position);
 
-
                 position = new Vector3Int(col, row, 0);
                 tilemap.SetTile(position, above);
             }
 
-
             row++;
         }
 
-
-        // If row was made of garbage tiles, create 1 garbage line
+        // UPDATE COUNTERS + REWARD (ONLY ONCE)
         if (isGarbageLine)
         {
+            garbageLinesCleared++;
             CreateGarbageLines(1);
-            // Increment garbage cleared count
-            garbageLinesCleared++;
+            AddReward(+1.0f);
         }
         else
         {
-            // Increment normal cleared lines count
             normalLinesCleared++;
+            AddReward(+0.5f);
         }
 
-
-        // Notify Python after clearing a line
+        // Notify Python AFTER reward
         socketClient.SendData();
-        if (isGarbageLine)
-        {
-            garbageLinesCleared++;
-            AddReward(+1.0f);   
-        }
-        else
-        {
-            normalLinesCleared++;
-            AddReward(+0.5f);   
-        }
-
     }
 
 
@@ -427,6 +411,7 @@ public void ResetForEpisode()
 
 
     // Reuse existing reset logic
+    lastReward = 0f;
     GameOver();
 
 
