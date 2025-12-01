@@ -574,6 +574,7 @@ public class Board : MonoBehaviour
     public void AddReward(float value)
     {
         lastReward += value;
+        Debug.Log($"[BOARD] AddReward called: +{value:F4}, total accumulated: {lastReward:F4}");
     }
     //what does this do??
     //I think it is so that you can acumulate a reward in lastReward then set it to the current reward?
@@ -582,6 +583,10 @@ public class Board : MonoBehaviour
     public float ConsumeReward()
     {
         float r = lastReward;
+        if (r != 0f)
+        {
+            Debug.Log($"[BOARD] ConsumeReward called: consuming {r:F4}, resetting to 0");
+        }
         lastReward = 0f;
         return r;
     }

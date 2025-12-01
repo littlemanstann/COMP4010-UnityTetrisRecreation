@@ -63,13 +63,14 @@ public class TetrisAgent : Agent
         sensor.AddObservation((pieceId + 1));
 
         // 3) Lines cleared
-        sensor.AddObservation(board.GetNormalLinesCleared());
+        float getReward = board.ConsumeReward();
+        sensor.AddObservation(getReward);
         sensor.AddObservation(board.GetGarbageLinesCleared());
+        
     }
 
     public override void OnActionReceived(ActionBuffers actionBuffers)
     {
-        AddReward(-0.0005f);
        // Debug.Log(">>> OnActionReceived CALLED with action " + actionBuffers.DiscreteActions[0]);
 
         if (board == null || piece == null)
@@ -77,7 +78,10 @@ public class TetrisAgent : Agent
 
         if (board.gameOver)
         {
-            Debug.Log("[DONE] Game Over triggered -> Ending episode");
+
+            float totalReward = GetCumulativeReward();
+            Debug.Log("[DONE] Game Over triggered -> Ending episode with total reward: " + totalReward);
+
             AddReward(-10f);
             EndEpisode();
             return;
@@ -90,16 +94,15 @@ public class TetrisAgent : Agent
 
 
 
-        if(didSomething)
-        {
-            AddReward(-0.001f); // small penalty for making a move
-        }
-
-        float boardReward = board.ConsumeReward();
-        if (Mathf.Abs(boardReward) > 0.0001f)
-        {
-            Debug.Log("[REWARD] " + boardReward);
-            AddReward(boardReward);
-        }
+        //float boardReward = board.ConsumeReward();
+        // if (Mathf.Abs(boardReward) > 0.0001f)
+        // {
+        //     //Debug.Log("[REWARD] Consuming reward from board: " + boardReward);
+        //     //AddReward(boardReward);
+        // }
+        // else if (boardReward != 0f)
+        // {
+        //     Debug.Log("[REWARD] Small reward filtered out (below threshold): " + boardReward);
+        // }
     }
 }
