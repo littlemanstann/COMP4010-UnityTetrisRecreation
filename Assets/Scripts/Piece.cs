@@ -26,6 +26,7 @@ public class Piece : MonoBehaviour
     private float stepTime;
     private float moveTime;
     private float lockTime;
+    private bool rotationInProgress; // Rotation lock to prevent spamming
 
 
     public void Initialize(Board board, Vector3Int position, TetrominoData data)
@@ -33,6 +34,7 @@ public class Piece : MonoBehaviour
         this.data = data;
         this.board = board;
         this.position = position;
+        rotationInProgress = false;
 
 
         rotationIndex = 0;
@@ -224,8 +226,12 @@ public bool Move(Vector2Int translation)
 
     public bool Rotate(int direction)
     {
+        if (rotationInProgress)
+            return false;
+
         int originalRotation = rotationIndex;
         Vector3Int originalPosition = position;
+        rotationInProgress = true;
 
 
         // Clear from board at current placement

@@ -1100,7 +1100,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.DecisionRequester
-  DecisionPeriod: 1
+  DecisionPeriod: 2
   DecisionStep: 0
   TakeActionsBetweenDecisions: 1
 --- !u!1 &936830108
@@ -1736,6 +1736,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6570178d836e8642a13a0b983600cf3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  inputText: {fileID: 0}
+  stepDelay: 1
+  moveDelay: 0.1
+  lockDelay: 0.5
 --- !u!114 &1887623656
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1772,6 +1776,7 @@ MonoBehaviour:
   garbageLinesCleared: 0
   gameOver: 0
   lastReward: 0
+  gravityInterval: 0.5
   socketClient: {fileID: 1919958431}
 --- !u!114 &1887623657
 MonoBehaviour:
