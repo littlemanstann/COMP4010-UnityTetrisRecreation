@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-
+using UnityEngine.Tilemaps;
 
 public class Piece : MonoBehaviour
 {
@@ -235,15 +235,12 @@ public bool Move(Vector2Int translation)
 
     public bool Rotate(int direction)
     {
-        if (rotationInProgress)
-            return false;
 
         int originalRotation = rotationIndex;
         Vector3Int originalPosition = position;
-        rotationInProgress = true;
 
 
-        // Clear from board at current placement
+
         board.Clear(this);
 
 
@@ -270,6 +267,22 @@ public bool Move(Vector2Int translation)
         board.Set(this, false);
         lockTime = 0f;
         board.AddReward(-0.002f);
+        return true;
+    }
+    private bool IsValidAfterRotation(Vector3Int testPosition)
+    {
+        foreach (var cell in cells)
+        {
+            Vector3Int tilePos = cell + testPosition;
+
+            if (!board.IsWithinBounds(tilePos))
+                return false;
+
+            TileBase tile = board.GetTile(tilePos);
+            if (tile != null)
+                return false;
+        }
+
         return true;
     }
 
@@ -322,7 +335,9 @@ public bool Move(Vector2Int translation)
             Vector2Int translation = data.wallKicks[wallKickIndex, i];
 
 
-            if (Move(translation)) {
+            if (IsValidAfterRotation(position + (Vector3Int)translation))
+            {
+                position += (Vector3Int)translation;
                 return true;
             }
         }
