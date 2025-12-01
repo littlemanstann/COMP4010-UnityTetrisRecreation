@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using System.Collections.Generic;
 
+
 [DefaultExecutionOrder(-1)]
 public class Board : MonoBehaviour
 {
@@ -10,20 +11,34 @@ public class Board : MonoBehaviour
     // Store active piece cell locations
     public HashSet<Vector3Int> activePositions = new HashSet<Vector3Int>();
 
+
     public TetrominoData[] tetrominoes;
     public Vector2Int boardSize = new Vector2Int(10, 20);
-    public Vector3Int spawnPosition = new Vector3Int(-1, 8, 0);
+    public Vector3Int spawnPosition = new Vector3Int(-1, 9, 0);
     public Tile garbageTile;
     public Tile ghostTile;
 
+
     public bool sevenBag = true;
     private List<Tetromino> bag = new List<Tetromino>();
-    
+   
     public int normalLinesCleared = 0;
     public int garbageLinesCleared = 0;
 
+
+    public bool gameOver = false;
+
+
+    // State reward to be consumed by agent
+    public float lastReward = 0f;
+
+    private float gravityTimer = 0f;
+    public float gravityInterval = 0.5f;
+
+
     // Reference to Socket Client to send data
     public StateSocketClient socketClient;
+
 
     public RectInt Bounds
     {
@@ -34,15 +49,18 @@ public class Board : MonoBehaviour
         }
     }
 
+
     private void Awake()
     {
         tilemap = GetComponentInChildren<Tilemap>();
         activePiece = GetComponentInChildren<Piece>();
 
+
         for (int i = 0; i < tetrominoes.Length; i++)
         {
             tetrominoes[i].Initialize();
         }
+
 
         // Set bag to full set of tetrominoes
         for (int i = 0; i < tetrominoes.Length; i++)
@@ -50,17 +68,21 @@ public class Board : MonoBehaviour
             bag.Add(tetrominoes[i].tetromino);
         }
 
+
         CreateGarbageLines(5);
     }
+
 
     private void Start()
     {
         SpawnPiece();
     }
 
+
     public void SpawnPiece()
     {
         TetrominoData data = tetrominoes[0];
+
 
         // If using 7-bag system, ensure all pieces are used before repeating
         if (sevenBag)
@@ -75,6 +97,7 @@ public class Board : MonoBehaviour
                 }
             }
 
+
             int bagIndex = Random.Range(0, bag.Count);
             Tetromino tetrominoType = bag[bagIndex];
             // Find the index of the tetromino type in the tetrominoes array
@@ -87,21 +110,35 @@ public class Board : MonoBehaviour
                 }
             }
         }
-        else 
+        else
         {
             int random = Random.Range(0, tetrominoes.Length);
             data = tetrominoes[random];
         }
-
         activePiece.Initialize(this, spawnPosition, data);
+
 
         if (IsValidPosition(activePiece, spawnPosition))
         {
-            Set(activePiece, false);
+            Set(activePiece, false); // draw new active piece
         }
         else
         {
-            GameOver();
+            Debug.LogError("[SPAWN] INVALID spawn position -> setting gameOver = true");
+            gameOver = true;
+        }
+    }
+
+    private void Update()
+    {
+        if (gameOver) return;
+
+        gravityTimer += Time.deltaTime;
+
+        if (gravityTimer >= gravityInterval)
+        {
+            gravityTimer = 0f;
+            activePiece.StepGravity();
         }
     }
 
@@ -110,13 +147,26 @@ public class Board : MonoBehaviour
         bag.Remove(activePiece.data.tetromino);
     }
 
+
     public void GameOver()
     {
         tilemap.ClearAllTiles();
 
+
         // Reset garbage
         CreateGarbageLines(5);
+
+
+        // Reset game over flag
+        gameOver = false;
+
+
+        // Reset line cleared counts
+        normalLinesCleared = 0;
+        garbageLinesCleared = 0;
+        lastReward = 0f;
     }
+
 
     public void Set(Piece piece, bool locked)
     {
@@ -130,9 +180,11 @@ public class Board : MonoBehaviour
             tilemap.SetTile(tilePosition, piece.data.tile);
         }
 
+
         // Send updated board state to Python
         // socketClient.SendData();
     }
+
 
     public void Clear(Piece piece)
     {
@@ -144,20 +196,24 @@ public class Board : MonoBehaviour
         }
     }
 
+
     public bool IsValidPosition(Piece piece, Vector3Int position)
     {
         RectInt bounds = Bounds;
+
 
         // The position is only valid if every cell is valid
         for (int i = 0; i < piece.cells.Length; i++)
         {
             Vector3Int tilePosition = piece.cells[i] + position;
 
+
             // An out of bounds tile is invalid
             if (!bounds.Contains((Vector2Int)tilePosition))
             {
                 return false;
             }
+
 
             // A tile already occupies the position, thus invalid
             if (tilemap.HasTile(tilePosition))
@@ -166,13 +222,16 @@ public class Board : MonoBehaviour
             }
         }
 
+
         return true;
     }
+
 
     public void ClearLines()
     {
         RectInt bounds = Bounds;
         int row = bounds.yMin;
+
 
         // Clear from bottom to top
         while (row < bounds.yMax)
@@ -190,13 +249,16 @@ public class Board : MonoBehaviour
         }
     }
 
+
     public bool IsLineFull(int row)
     {
         RectInt bounds = Bounds;
 
+
         for (int col = bounds.xMin; col < bounds.xMax; col++)
         {
             Vector3Int position = new Vector3Int(col, row, 0);
+
 
             // The line is not full if a tile is missing
             if (!tilemap.HasTile(position))
@@ -205,8 +267,10 @@ public class Board : MonoBehaviour
             }
         }
 
+
         return true;
     }
+
 
     public void LineClear(int row)
     {
@@ -239,28 +303,31 @@ public class Board : MonoBehaviour
             row++;
         }
 
-        // If row was made of garbage tiles, create 1 garbage line
+        // UPDATE COUNTERS + REWARD (ONLY ONCE)
         if (isGarbageLine)
         {
-            CreateGarbageLines(1);
-            // Increment garbage cleared count
             garbageLinesCleared++;
+            CreateGarbageLines(1);
+            AddReward(+1.0f);
         }
         else
         {
-            // Increment normal cleared lines count
             normalLinesCleared++;
+            AddReward(+0.5f);
         }
 
-        // Notify Python after clearing a line
+        // Notify Python AFTER reward
         socketClient.SendData();
     }
+
+
 
 
     // Create lines of garbage at the bottom of the board
     public void CreateGarbageLines(int amount)
     {
         RectInt bounds = Bounds;
+
 
         for (int i = 0; i < amount; i++)
         {
@@ -272,18 +339,22 @@ public class Board : MonoBehaviour
                     Vector3Int position = new Vector3Int(col, row - 1, 0);
                     TileBase below = tilemap.GetTile(position);
 
+
                     position = new Vector3Int(col, row, 0);
                     tilemap.SetTile(position, below);
                 }
             }
 
+
             // Create garbage line at the bottom
             int hole = Random.Range(bounds.xMin, bounds.xMax);
+
 
             for (int col = bounds.xMin; col < bounds.xMax; col++)
             {
                 if (col == hole)
                     continue;
+
 
                 Vector3Int position = new Vector3Int(col, bounds.yMin, 0);
                 tilemap.SetTile(position, garbageTile); // Use garbage tile
@@ -292,11 +363,20 @@ public class Board : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// AI Agent Helper Functions
+    /// </summary>
+    /// <returns></returns>I th
+
+
+
+
     // HELPER FUNCTION: Get board grid as 1D array
     public int[] GetGridState()
     {
         RectInt bounds = Bounds;
         int[] grid = new int[bounds.height * bounds.width];
+
 
         for (int row = bounds.yMin; row < bounds.yMax; row++)
         {
@@ -304,6 +384,7 @@ public class Board : MonoBehaviour
             {
                 Vector3Int position = new Vector3Int(col, row, 0);
                 TileBase tile = tilemap.GetTile(position);
+
 
                 int value = 0; // default empty
                 if (tile == null || tile == ghostTile)
@@ -316,17 +397,41 @@ public class Board : MonoBehaviour
                 else
                     value = 1;
 
+
                 grid[(row - bounds.yMin) * bounds.width + (col - bounds.xMin)] = value;
             }
         }
 
+
         return grid;
     }
+public void ResetForEpisode()
+{
+    Debug.Log("[BOARD] ResetForEpisode called");
+
+
+    // Reuse existing reset logic
+    lastReward = 0f;
+    GameOver();
+
+
+    // Spawn a fresh piece on the reset board
+    SpawnPiece();
+
+
+    Debug.Log($"[BOARD] After ResetForEpisode, gameOver = {gameOver}");
+}
+
+
+
+
+
 
     /// <summary>
     /// Functions for getting state data to send to Python server
     /// </summary>
     /// <returns></returns>
+
 
     // STATE FUNCTION: Get contour of the board
     public int[] GetContour()
@@ -337,12 +442,14 @@ public class Board : MonoBehaviour
         int currHeight = 0;
         int prevHeight = 0;
 
+
         for (int col = bounds.xMin; col < bounds.xMax; col++)
         {
             for (int row = bounds.yMax - 1; row >= bounds.yMin; row--)
             {
                 Vector3Int position = new Vector3Int(col, row, 0);
                 TileBase tile = tilemap.GetTile(position);
+
 
                 if (tile != null && tile != ghostTile)
                 {
@@ -358,8 +465,41 @@ public class Board : MonoBehaviour
             }
         }
 
+
         return contour;
     }
+
+
+    // Convenience helper: map piece enum char to an int ID (optional)
+    public int GetCurrentPieceId()
+    {
+        if (activePiece == null) return -1;
+        char c = GetCurrentPieceChar();
+        // Map based on 'I','O','T','S','Z','J','L' — modify to match your Tetromino enum
+        switch (c)
+        {
+            case 'I': return 0;
+            case 'O': return 1;
+            case 'T': return 2;
+            case 'S': return 3;
+            case 'Z': return 4;
+            case 'J': return 5;
+            case 'L': return 6;
+            default: return -1;
+        }
+    }
+
+    public void AddReward(float value)
+    {
+        lastReward += value;
+    }
+    public float ConsumeReward()
+    {
+        float r = lastReward;
+        lastReward = 0f;
+        return r;
+    }
+
 
     // STATE FUNCTION: Get current piece as char
     public char GetCurrentPieceChar()
@@ -368,11 +508,13 @@ public class Board : MonoBehaviour
         return activePiece.data.tetromino.ToString()[0];
     }
 
+
     // STATE FUNCTION: Get number of normal lines cleared
     public int GetNormalLinesCleared()
     {
         return normalLinesCleared;
     }
+
 
     // STATE FUNCTION: Get number of garbage lines cleared
     public int GetGarbageLinesCleared()
@@ -381,3 +523,6 @@ public class Board : MonoBehaviour
         return garbageLinesCleared;
     }
 }
+
+
+
