@@ -26,6 +26,7 @@ public class Piece : MonoBehaviour
     private float stepTime;
     private float moveTime;
     private float lockTime;
+    private bool rotationInProgress; // Rotation lock to prevent spamming
 
 
     public void Initialize(Board board, Vector3Int position, TetrominoData data)
@@ -33,6 +34,7 @@ public class Piece : MonoBehaviour
         this.data = data;
         this.board = board;
         this.position = position;
+        rotationInProgress = false;
 
 
         rotationIndex = 0;
@@ -178,9 +180,18 @@ public class Piece : MonoBehaviour
 
     private void Lock()
     {
-        board.AddReward(+0.1f);
+
+        
+        // Save the location of the locked piece
+        board.SaveLastLockedPieceLocation(this);
         // Clear active piece once and re-set as locked tiles
         board.Clear(this);
+
+        //Do this before the board is updated for easier huristics
+        // Calculate the reward for the placement
+        board.CalculatePlacementReward(this);
+
+        //now set it to the board
         board.Set(this, true);       // now part of the board
 
 
@@ -224,8 +235,12 @@ public bool Move(Vector2Int translation)
 
     public bool Rotate(int direction)
     {
+        if (rotationInProgress)
+            return false;
+
         int originalRotation = rotationIndex;
         Vector3Int originalPosition = position;
+        rotationInProgress = true;
 
 
         // Clear from board at current placement
