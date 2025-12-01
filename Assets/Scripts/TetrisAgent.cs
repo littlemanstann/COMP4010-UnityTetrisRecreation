@@ -55,16 +55,16 @@ public class TetrisAgent : Agent
 
         for (int i = 0; i < grid.Length; i++)
         {
-            sensor.AddObservation(grid[i] / 3.0f);
+            sensor.AddObservation(grid[i]);
         }
 
         // 2) Current piece ID
         int pieceId = board.GetCurrentPieceId();
-        sensor.AddObservation((pieceId + 1) / 8.0f);
+        sensor.AddObservation((pieceId + 1));
 
         // 3) Lines cleared
-        sensor.AddObservation(board.GetNormalLinesCleared() / 100.0f);
-        sensor.AddObservation(board.GetGarbageLinesCleared() / 100.0f);
+        sensor.AddObservation(board.GetNormalLinesCleared());
+        sensor.AddObservation(board.GetGarbageLinesCleared());
     }
 
     public override void OnActionReceived(ActionBuffers actionBuffers)
