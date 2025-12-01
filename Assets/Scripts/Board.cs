@@ -536,6 +536,22 @@ public class Board : MonoBehaviour
     }
 
 
+    //TESTERS
+    public bool IsWithinBounds(Vector3Int pos)
+    {
+        RectInt bounds = Bounds;
+        return bounds.Contains((Vector2Int)pos);
+    }
+    public TileBase GetTile(Vector3Int pos)
+    {
+        return tilemap.GetTile(pos);
+    }
+
+
+
+
+
+
     // Convenience helper: map piece enum char to an int ID (optional)
     public int GetCurrentPieceId()
     {
