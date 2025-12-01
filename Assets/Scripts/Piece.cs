@@ -180,9 +180,18 @@ public class Piece : MonoBehaviour
 
     private void Lock()
     {
-        board.AddReward(+0.1f);
+
+        
+        // Save the location of the locked piece
+        board.SaveLastLockedPieceLocation(this);
         // Clear active piece once and re-set as locked tiles
         board.Clear(this);
+
+        //Do this before the board is updated for easier huristics
+        // Calculate the reward for the placement
+        board.CalculatePlacementReward(this);
+
+        //now set it to the board
         board.Set(this, true);       // now part of the board
 
 

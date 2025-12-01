@@ -35,6 +35,12 @@ public class Board : MonoBehaviour
     private float gravityTimer = 0f;
     public float gravityInterval = 0.5f;
 
+    // Store information about the last locked piece for reward calculation
+    public Vector3Int lastLockedPiecePosition { get; private set; }
+    public Vector3Int[] lastLockedPieceCells { get; private set; }
+    public Tetromino lastLockedPieceType { get; private set; }
+    public bool hasLastLockedPiece { get; private set; } = false;
+
 
     // Reference to Socket Client to send data
     public StateSocketClient socketClient;
@@ -81,6 +87,27 @@ public class Board : MonoBehaviour
 
     public void SpawnPiece()
     {
+        // Print locked piece information when a new piece is spawned
+        if (hasLastLockedPiece)
+        {
+            Debug.Log($"[BOARD] Last Locked Piece Info (before spawning new piece):");
+            Debug.Log($"  - Type: {lastLockedPieceType}");
+            Debug.Log($"  - Position: {lastLockedPiecePosition}");
+            Debug.Log($"  - Number of cells: {lastLockedPieceCells?.Length ?? 0}");
+            
+            if (lastLockedPieceCells != null)
+            {
+                Vector3Int[] worldPositions = GetLastLockedPieceWorldPositions();
+                string positionsStr = "";
+                for (int i = 0; i < worldPositions.Length; i++)
+                {
+                    positionsStr += worldPositions[i].ToString();
+                    if (i < worldPositions.Length - 1) positionsStr += ", ";
+                }
+                Debug.Log($"  - World Positions: [{positionsStr}]");
+            }
+        }
+
         TetrominoData data = tetrominoes[0];
 
 
@@ -179,7 +206,6 @@ public class Board : MonoBehaviour
             Vector3Int tilePosition = piece.cells[i] + piece.position;
             tilemap.SetTile(tilePosition, piece.data.tile);
         }
-
 
         // Send updated board state to Python
         // socketClient.SendData();
@@ -405,13 +431,13 @@ public class Board : MonoBehaviour
 
         return grid;
     }
-public void ResetForEpisode()
+    public void ResetForEpisode()
 {
     Debug.Log("[BOARD] ResetForEpisode called");
 
-
     // Reuse existing reset logic
     lastReward = 0f;
+    hasLastLockedPiece = false; // Reset locked piece tracking
     GameOver();
 
 
@@ -421,6 +447,46 @@ public void ResetForEpisode()
 
     Debug.Log($"[BOARD] After ResetForEpisode, gameOver = {gameOver}");
 }
+
+    /// <summary>
+    /// Saves the location information of a piece when it is locked
+    /// Should only be called from Piece.Lock() to control when pieces are locked
+    /// </summary>
+    public void SaveLastLockedPieceLocation(Piece piece)
+    {
+        lastLockedPiecePosition = piece.position;
+        lastLockedPieceType = piece.data.tetromino;
+        
+        // Save all cell positions (relative to piece origin)
+        lastLockedPieceCells = new Vector3Int[piece.cells.Length];
+        for (int i = 0; i < piece.cells.Length; i++)
+        {
+            lastLockedPieceCells[i] = piece.cells[i];
+        }
+        
+        hasLastLockedPiece = true;
+        
+        Debug.Log($"[BOARD] Saved locked piece location: Position={lastLockedPiecePosition}, Type={lastLockedPieceType}, Cells={lastLockedPieceCells.Length}");
+    }
+
+    /// <summary>
+    /// Gets all world positions where the last locked piece's blocks were placed
+    /// </summary>
+    public Vector3Int[] GetLastLockedPieceWorldPositions()
+    {
+        if (!hasLastLockedPiece || lastLockedPieceCells == null)
+        {
+            return new Vector3Int[0];
+        }
+        
+        Vector3Int[] worldPositions = new Vector3Int[lastLockedPieceCells.Length];
+        for (int i = 0; i < lastLockedPieceCells.Length; i++)
+        {
+            worldPositions[i] = lastLockedPieceCells[i] + lastLockedPiecePosition;
+        }
+        
+        return worldPositions;
+    }
 
 
 
@@ -493,11 +559,154 @@ public void ResetForEpisode()
     {
         lastReward += value;
     }
+    //what does this do??
+    //I think it is so that you can acumulate a reward in lastReward then set it to the current reward?
+    //should lastReward be re-named to future reward? or Acumulated Reward?
+    //Clears last reward
     public float ConsumeReward()
     {
         float r = lastReward;
         lastReward = 0f;
         return r;
+    }
+
+    /// <summary>
+    /// Calculates reward based on where a piece was placed
+    /// </summary>
+    public void CalculatePlacementReward(Piece piece)
+    {
+        // Base reward for placing a piece
+        float reward = 0.1f;
+        
+        // Get the piece's position and cells
+        Vector3Int piecePosition = piece.position;
+        Vector3Int[] worldPositions = new Vector3Int[piece.cells.Length];
+        for (int i = 0; i < piece.cells.Length; i++)
+        {
+            worldPositions[i] = piece.cells[i] + piecePosition;
+        }
+        
+        // Location-based reward calculations
+
+        // Parameters for heuristics (tune as needed)
+        float lowRowReward = 0.001f;      // Reward per row closer to bottom
+        float holePenalty = -0.02f;       // Penalty per new hole created
+        float fillReward = 0.01f;         // Reward per hole filled by this placement
+        float stackPenalty = -0.001f;     // Penalty for high stacks
+        float flatnessReward = 0.005f;    // Reward for flatter surfaces
+
+        RectInt bounds = Bounds;
+        int boardWidth = bounds.width;
+        int boardHeight = bounds.height;
+
+        // -- 1. Reward for lower placements --
+        int lowestY = boardHeight;
+        foreach (var pos in worldPositions)
+        {
+            if (pos.y < lowestY) lowestY = pos.y;
+        }
+        // Y increases upwards—lower y is closer to bottom
+        float rewardLower = (boardHeight - 1 - lowestY) * lowRowReward;
+        reward += rewardLower;
+
+        // -- 2. Penalty for holes (empty below filled) & reward for filling holes --
+        // For each column, check for new holes created or filled
+        Tilemap tilemap = this.tilemap;
+        int colMin = bounds.xMin;
+        int colMax = bounds.xMax;
+
+        int newHoles = 0;
+        int filledHoles = 0;
+
+        foreach (var pos in worldPositions)
+        {
+            // For each block placed, check if it fills an empty-under-filled "hole"
+            int x = pos.x;
+            int y = pos.y;
+
+            // Is there a filled cell above and empty cell(s) below prior to this placement?
+            // We'll reward if we are filling an empty cell that previously had filled above it (a hole got filled)
+            bool wasHole = false;
+            for (int yCheck = y + 1; yCheck < bounds.yMax; yCheck++)
+            {
+                Vector3Int checkAbove = new Vector3Int(x, yCheck, 0);
+                if (tilemap.HasTile(checkAbove))
+                {
+                    wasHole = true;
+                    break;
+                }
+            }
+            if (wasHole)
+                filledHoles++;
+
+            // Conversely, is there now a tile above an empty cell (thus a new hole)?
+            for (int yBelow = y - 1; yBelow >= bounds.yMin; yBelow--)
+            {
+                Vector3Int below = new Vector3Int(x, yBelow, 0);
+                if (!tilemap.HasTile(below))
+                {
+                    // New hole created if empty below
+                    newHoles++;
+                    break; // only count the first empty directly below
+                }
+                else
+                {
+                    // Found a tile directly below, not a hole here
+                    break;
+                }
+            }
+        }
+        reward += filledHoles * fillReward;
+        reward += newHoles * holePenalty;
+
+        // -- 3. Penalty for high stacks (encourage pieces to keep the board low) --
+        int maxStackHeight = 0;
+        for (int x = colMin; x < colMax; x++)
+        {
+            // topmost filled cell in that column
+            for (int y = bounds.yMax - 1; y >= bounds.yMin; y--)
+            {
+                if (tilemap.HasTile(new Vector3Int(x, y, 0)))
+                {
+                    int height = y - bounds.yMin + 1;
+                    if (height > maxStackHeight)
+                        maxStackHeight = height;
+                    break;
+                }
+            }
+        }
+        reward += maxStackHeight * stackPenalty;
+
+        // -- 4. Reward for keeping the board flat (flatness = low diff in column heights) --
+        int[] colHeights = new int[boardWidth];
+        for (int x = colMin, i = 0; x < colMax; x++, i++)
+        {
+            int yTop = bounds.yMin - 1;
+            for (int y = bounds.yMax - 1; y >= bounds.yMin; y--)
+            {
+                if (tilemap.HasTile(new Vector3Int(x, y, 0)))
+                {
+                    yTop = y;
+                    break;
+                }
+            }
+            colHeights[i] = yTop;
+        }
+        // Flatness metric: reward is higher the smaller the difference
+        int maxH = int.MinValue, minH = int.MaxValue;
+        foreach (int h in colHeights)
+        {
+            if (h > maxH) maxH = h;
+            if (h < minH) minH = h;
+        }
+        int flatnessDelta = maxH - minH;
+        reward += flatnessDelta == 0 ? flatnessReward : flatnessReward / (flatnessDelta + 1);
+
+        
+        // For now, just use the base reward
+        AddReward(reward);
+        
+        Debug.Log($"[REWARD] Placement reward calculated: {reward} for piece at position {piecePosition}");
     }
 
 
