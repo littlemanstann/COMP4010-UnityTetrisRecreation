@@ -170,7 +170,10 @@ public class Piece : MonoBehaviour
         }
 
 
+<<<<<<< HEAD
         //board.AddReward(0.015f * dropDistance);   
+=======
+>>>>>>> f31df371efe0a9c6f57941f7846a40800661a198
 
         Lock();
     }
@@ -219,13 +222,18 @@ public bool Move(Vector2Int translation)
         //  REWARD LOGIC 
 
 
+<<<<<<< HEAD
         //if (translation.x != 0)
             //board.AddReward(-0.001f);
 
     }
     else
     {
+=======
+        if(translation.x == 0){
+>>>>>>> f31df371efe0a9c6f57941f7846a40800661a198
         position = oldPosition;
+    }
     }
 
     board.Set(this, false);
@@ -266,7 +274,10 @@ public bool Move(Vector2Int translation)
         // Successful rotation, re-draw in new orientation
         board.Set(this, false);
         lockTime = 0f;
+<<<<<<< HEAD
         //board.AddReward(-0.002f);
+=======
+>>>>>>> f31df371efe0a9c6f57941f7846a40800661a198
         return true;
     }
     private bool IsValidAfterRotation(Vector3Int testPosition)
