@@ -64,7 +64,14 @@ public class TetrisAgent : Agent
 
         // 3) Lines cleared
         float getReward = board.ConsumeReward();
-        sensor.AddObservation(getReward);
+        if (Mathf.Abs(getReward) > 0.0001f)
+        {
+            sensor.AddObservation(getReward);
+        }
+        else
+        {
+            sensor.AddObservation(0);
+        }
         sensor.AddObservation(board.GetGarbageLinesCleared());
         
     }
@@ -79,8 +86,8 @@ public class TetrisAgent : Agent
         if (board.gameOver)
         {
 
-            float totalReward = GetCumulativeReward();
-            Debug.Log("[DONE] Game Over triggered -> Ending episode with total reward: " + totalReward);
+            //float totalReward = GetCumulativeReward();
+            //Debug.Log("[DONE] Game Over triggered -> Ending episode with total reward: " + totalReward);
 
             AddReward(-10f);
             EndEpisode();

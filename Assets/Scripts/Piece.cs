@@ -170,7 +170,7 @@ public class Piece : MonoBehaviour
         }
 
 
-        board.AddReward(0.015f * dropDistance);
+        //board.AddReward(0.015f * dropDistance);   
 
         Lock();
     }
@@ -219,8 +219,8 @@ public bool Move(Vector2Int translation)
         //  REWARD LOGIC 
 
 
-        if (translation.x != 0)
-            board.AddReward(-0.001f);
+        //if (translation.x != 0)
+            //board.AddReward(-0.001f);
 
     }
     else
@@ -266,7 +266,7 @@ public bool Move(Vector2Int translation)
         // Successful rotation, re-draw in new orientation
         board.Set(this, false);
         lockTime = 0f;
-        board.AddReward(-0.002f);
+        //board.AddReward(-0.002f);
         return true;
     }
     private bool IsValidAfterRotation(Vector3Int testPosition)

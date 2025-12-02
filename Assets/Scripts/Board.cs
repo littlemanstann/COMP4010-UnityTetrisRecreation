@@ -574,6 +574,7 @@ public class Board : MonoBehaviour
     public void AddReward(float value)
     {
         lastReward += value;
+        Debug.Log($"[BOARD] AddReward called: +{value:F4}, total accumulated: {lastReward:F4}");
     }
     //what does this do??
     //I think it is so that you can acumulate a reward in lastReward then set it to the current reward?
@@ -592,7 +593,7 @@ public class Board : MonoBehaviour
     public void CalculatePlacementReward(Piece piece)
     {
         // Base reward for placing a piece
-        float reward = 0.1f;
+        float reward = 0f;
         
         // Get the piece's position and cells
         Vector3Int piecePosition = piece.position;
