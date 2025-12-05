@@ -2,107 +2,108 @@ using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
-using Unity.MLAgents.Policies;
 
-[RequireComponent(typeof(BehaviorParameters))]
 public class TetrisAgent : Agent
 {
+    private int lastAction = -1;
     [Header("References")]
-    public Board board; // assign in inspector
-    public Piece piece; // current active piece
-
-    // Action mapping:
-    // 0 = No-op
-    // 1 = Left
-    // 2 = Right
-    // 3 = Rotate
-    // 4 = SoftDrop (one step)
-    // 5 = HardDrop
+    public Board board; 
+    public Piece piece; 
 
     public override void Initialize()
     {
-        if (board == null)
-            Debug.LogError("TetrisAgent: Board reference not set.");
-        if (piece == null)
-            Debug.LogError("TetrisAgent: Piece reference not set.");
+        if (board == null) Debug.LogError("TetrisAgent: Board reference not set.");
+        if (piece == null) Debug.LogError("TetrisAgent: Piece reference not set.");
     }
 
     public override void OnEpisodeBegin()
     {
-        Debug.Log("[AGENT] OnEpisodeBegin called");
-
         if (board != null)
         {
             board.ResetForEpisode();
-        }
-        else
-        {
-            Debug.LogError("[AGENT] Board reference NULL in OnEpisodeBegin!");
         }
     }
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        Debug.Log("[OBS] CollectObservations CALLED with grid size " + board.GetGridState().Length);
         if (board == null) return;
 
-        // 1) Flattened board grid
-        //I CANNOT GET THIS TO WORK PROPERLY
-        //int[] grid = board.GetContour();
+        //  Heights (normalized 0–20) ---
+        int[] heights = board.GetColumnHeights();
+        foreach (int h in heights)
+            sensor.AddObservation(h / 20f);
 
-        //full board
-        int[] grid = board.GetGridState();
+        //Bumpiness 
+        int[] diffs = board.GetContourDiffs();
+        foreach (int d in diffs)
+            sensor.AddObservation(d / 20f);
 
-        for (int i = 0; i < grid.Length; i++)
-        {
-            sensor.AddObservation(grid[i]);
-        }
+        // Hole count 
+        int holes = board.CountHoles();
+        sensor.AddObservation(holes / 40f);
 
-        // 2) Current piece ID
+        //Max height
+        sensor.AddObservation(board.GetMaxHeight() / 20f);
+
+        // Piece type 
         int pieceId = board.GetCurrentPieceId();
-        sensor.AddObservation((pieceId + 1));
-
-        // 3) Lines cleared
-        float getReward = board.ConsumeReward();
-        sensor.AddObservation(getReward);
-        sensor.AddObservation(board.GetGarbageLinesCleared());
-        
+        float[] onehot = new float[7];
+        if (pieceId >= 0 && pieceId < 7) onehot[pieceId] = 1f;
+        foreach (float v in onehot) sensor.AddObservation(v);
     }
+
 
     public override void OnActionReceived(ActionBuffers actionBuffers)
     {
-       // Debug.Log(">>> OnActionReceived CALLED with action " + actionBuffers.DiscreteActions[0]);
-
         if (board == null || piece == null)
             return;
 
         if (board.gameOver)
         {
-
-            float totalReward = GetCumulativeReward();
-            Debug.Log("[DONE] Game Over triggered -> Ending episode with total reward: " + totalReward);
-
-            AddReward(-10f);
+            AddReward(-1.0f);
             EndEpisode();
             return;
         }
 
         int act = actionBuffers.DiscreteActions[0];
-       // Debug.Log("[ACT] Unity received action: " + act);
 
-        bool didSomething = piece.ApplyAction(act);
-
+        AddReward(-0.0005f);
 
 
-        //float boardReward = board.ConsumeReward();
-        // if (Mathf.Abs(boardReward) > 0.0001f)
-        // {
-        //     //Debug.Log("[REWARD] Consuming reward from board: " + boardReward);
-        //     //AddReward(boardReward);
-        // }
-        // else if (boardReward != 0f)
-        // {
-        //     Debug.Log("[REWARD] Small reward filtered out (below threshold): " + boardReward);
-        // }
+        if (act == lastAction)
+        {
+            AddReward(-0.001f);
+        }
+        lastAction = act;
+
+        switch (act)
+        {
+            case 1: 
+                piece.ApplyAction(1);
+                break;
+            case 2: 
+                piece.ApplyAction(2);
+                break;
+            case 3: 
+                piece.ApplyAction(3);
+                break;
+            case 4: 
+                piece.ApplyAction(4);
+                break;
+            case 5: 
+                piece.ApplyAction(5);
+                break;
+
+        }
+
+
+        piece.StepGravity();
+
+
+        float accumulatedReward = board.ConsumeReward();
+        if (Mathf.Abs(accumulatedReward) > 1e-6f)
+        {
+            AddReward(accumulatedReward);
+        }
     }
 }
