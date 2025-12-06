@@ -4,8 +4,8 @@ using UnityEngine.Tilemaps;
 public class Ghost : MonoBehaviour
 {
     public Tile tile;
-    public Board mainBoard;
-    public Piece trackingPiece;
+    private Board mainBoard;
+    private Piece trackingPiece;
 
     public Tilemap tilemap { get; private set; }
     public Vector3Int[] cells { get; private set; }
@@ -13,7 +13,10 @@ public class Ghost : MonoBehaviour
 
     private void Awake()
     {
-        tilemap = GetComponentInChildren<Tilemap>();
+        mainBoard = GetComponentInParent<Board>();
+        trackingPiece = GetComponentInParent<Piece>();
+
+        tilemap = mainBoard.tilemap;
         cells = new Vector3Int[4];
     }
 

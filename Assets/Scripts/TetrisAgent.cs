@@ -6,11 +6,14 @@ using Unity.MLAgents.Sensors;
 public class TetrisAgent : Agent
 {
     [Header("References")]
-    public Board board;
-    public Piece piece;
+    private Board board;
+    private Piece piece;
 
     public override void Initialize()
     {
+        board = GetComponentInParent<Board>();
+        piece = GetComponentInParent<Piece>();
+
         if (board == null)
             Debug.LogError("TetrisAgent: Board reference not set.");
         if (piece == null)
