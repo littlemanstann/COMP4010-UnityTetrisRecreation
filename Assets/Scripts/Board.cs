@@ -29,6 +29,9 @@ public class Board : MonoBehaviour
     private List<Tetromino> bag = new List<Tetromino>();
     public bool sevenBag = true;
 
+    public TetrisAgent agent;
+
+
     public RectInt Bounds
     {
         get
@@ -464,8 +467,11 @@ public float EvaluatePlacement(Piece piece, int clearedLines)
     reward += HoleReward();
     reward += HeightPenalty();
     reward += 0.5f;
-
     AddReward(reward);
+
+    if (agent != null)
+        agent.AddReward(reward);   
+
     return reward;
 }
 
@@ -474,10 +480,10 @@ private float LineClearReward(int lines)
 {
     switch (lines)
     {
-        case 1: return 100f;
-        case 2: return 300f;
-        case 3: return 500f;
-        case 4: return 1000f;
+        case 1: return 50f;
+        case 2: return 100f;
+        case 3: return 200f;
+        case 4: return 400f;
         default: return 0f;
     }
 }

@@ -66,17 +66,30 @@ public class Piece : MonoBehaviour
 
     private void Lock()
     {
+        // Fix the current piece in place
         board.Set(this, true);
+
+        // Clear any completed lines
         int cleared = board.ClearLines();
 
+        // Compute the placement reward (holes, height, line clears, etc.)
+        float reward = board.EvaluatePlacement(this, cleared);
 
-        board.EvaluatePlacement(this, cleared);
-
+        // Update the bag and spawn the next piece
         board.UpdateBag();
         board.SpawnPiece();
-        Object.FindFirstObjectByType<TetrisAgent>()?.RequestDecision();
 
-
+        // Give reward + request a new decision from the ML-Agents agent
+        var agent = Object.FindFirstObjectByType<TetrisAgent>();
+        if (agent != null)
+        {
+            agent.AddReward(reward);
+            agent.RequestDecision();
+        }
+        else
+        {
+            Debug.LogWarning("TetrisAgent not found when trying to give reward.");
+        }
     }
 
     public bool Move(Vector2Int translation)
