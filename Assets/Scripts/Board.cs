@@ -125,10 +125,7 @@ public class Board : MonoBehaviour
         return data;
     }
 
-    /// <summary>
-    /// Draws the piece tiles on the tilemap.
-    /// No reward logic here.
-    /// </summary>
+
     public void Set(Piece piece, bool locked)
     {
         for (int i = 0; i < piece.cells.Length; i++)
@@ -173,10 +170,7 @@ public class Board : MonoBehaviour
         return true;
     }
 
-    /// <summary>
-    /// Clears all full lines and returns how many lines were cleared.
-    /// No reward added here; only board state + counters.
-    /// </summary>
+
     public int ClearLines()
     {
         RectInt bounds = Bounds;
@@ -193,8 +187,6 @@ public class Board : MonoBehaviour
 
                 if (isGarbage)
                     garbage++;
-
-                // do not increment row; we want to re-check same index after collapse
             }
             else
             {
@@ -346,7 +338,6 @@ public class Board : MonoBehaviour
         return activePiece.data.tetromino.ToString()[0];
     }
 
-    // ===== Heuristic helpers used for reward & observations =====
 
     public int[] GetColumnHeights()
     {
@@ -436,7 +427,6 @@ public class Board : MonoBehaviour
         return max;
     }
 
-    // ===== RL Reward Accumulation =====
 
     public void AddReward(float v)
     {
@@ -464,38 +454,22 @@ public class Board : MonoBehaviour
     {
         return normalLinesCleared;
     }
-public void SaveLastLockedPieceLocation(Piece piece)
-{
-    // Optional debug hook
-}
-
-// =====================
-// RL REWARD EVALUATION
-// =====================
 
 public float EvaluatePlacement(Piece piece, int clearedLines)
 {
     float reward = 0f;
 
-    // 1. Line clear rewards
     reward += LineClearReward(clearedLines);
 
-    // 2. Hole delta penalty (gentle)
     reward += HoleReward();
-
-    // 3. Height penalty (gentle)
     reward += HeightPenalty();
-
-    // 4. Survival reward — every placement gives small positive reward
     reward += 0.5f;
 
     AddReward(reward);
     return reward;
 }
 
-// -----------------
-// Line Clear Reward
-// -----------------
+
 private float LineClearReward(int lines)
 {
     switch (lines)
@@ -508,9 +482,7 @@ private float LineClearReward(int lines)
     }
 }
 
-// -----------------
-// Hole Reward
-// -----------------
+
 private float HoleReward()
 {
     int newHoles = CountHoles();
@@ -519,17 +491,15 @@ private float HoleReward()
     float reward = 0f;
 
     if (delta > 0)
-        reward -= 0.4f * delta;   // Slight penalty for creating holes
+        reward -= 0.4f * delta; 
     else if (delta < 0)
-        reward += 0.3f * (-delta); // Reward for reducing holes
+        reward += 0.3f * (-delta); 
 
     previousHoleCount = newHoles;
     return reward;
 }
 
-// --------------------
-// Bumpiness Penalty
-// --------------------
+
 private float BumpinessPenalty()
 {
     int[] diffs = GetContourDiffs();
@@ -541,25 +511,19 @@ private float BumpinessPenalty()
     return -0.1f * bumpiness;
 }
 
-// --------------------
-// Height Penalty
-// --------------------
+
 private float HeightPenalty()
 {
     int maxH = GetMaxHeight();
     return -0.02f * maxH;
 }
 
-// -----------------------------
-// Landing Height Reward
-// -----------------------------
+
 private float LandingHeightReward(Piece piece)
 {
     RectInt bounds = Bounds;
     int landingY = piece.position.y - bounds.yMin;
     int boardHeight = bounds.height;
-
-    // reward lower placements
     return (boardHeight - landingY) * 0.2f;
 }
 }
