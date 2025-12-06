@@ -15,33 +15,46 @@ public class Piece : MonoBehaviour
         this.data = data;
         this.rotationIndex = 0;
 
-        if (cells == null) cells = new Vector3Int[data.cells.Length];
-        for (int i = 0; i < cells.Length; i++) cells[i] = (Vector3Int)data.cells[i];
-    }
+        if (cells == null)
+            cells = new Vector3Int[data.cells.Length];
 
+        for (int i = 0; i < cells.Length; i++)
+        {
+            cells[i] = (Vector3Int)data.cells[i];
+        }
+    }
 
     public bool ApplyAction(int act)
     {
         switch (act)
         {
-            case 0: return StepGravity(); 
-            case 1: return Move(Vector2Int.left);
-            case 2: return Move(Vector2Int.right);
-            case 3: return Rotate(1);
-            case 4: return Move(Vector2Int.down);
-            case 5: HardDrop(); return true;
+            case 0:
+                return StepGravity();             
+            case 1:
+                return Move(Vector2Int.left);
+            case 2:
+                return Move(Vector2Int.right);
+            case 3:
+                return Rotate(1);
+            case 4:
+                return Move(Vector2Int.down);   
+            //case 5:
+             //   HardDrop();
+              //  return true;
         }
         return false;
     }
 
     public bool StepGravity()
     {
-        if (board.gameOver) return false;
-        
+        if (board.gameOver)
+            return false;
+
         bool moved = Move(Vector2Int.down);
-        
-        if (!moved) Lock();
-        
+
+        if (!moved)
+            Lock();
+
         return moved;
     }
 
@@ -53,26 +66,32 @@ public class Piece : MonoBehaviour
 
     private void Lock()
     {
-        board.CalculatePlacementReward(this); 
-        board.Set(this, true); 
-        board.UpdateBag(); 
-        board.ClearLines(); 
-        board.SpawnPiece(); 
+        board.Set(this, true);
+        int cleared = board.ClearLines();
+
+
+        board.EvaluatePlacement(this, cleared);
+
+        board.UpdateBag();
+        board.SpawnPiece();
+        Object.FindFirstObjectByType<TetrisAgent>()?.RequestDecision();
+
+
     }
 
     public bool Move(Vector2Int translation)
     {
         Vector3Int newPosition = position + (Vector3Int)translation;
 
-        board.Clear(this); 
-        bool valid = board.IsValidPosition(this, newPosition); 
+        board.Clear(this);
+        bool valid = board.IsValidPosition(this, newPosition);
 
         if (valid)
         {
-            position = newPosition; 
+            position = newPosition;
         }
 
-        board.Set(this, false); 
+        board.Set(this, false);
         return valid;
     }
 
@@ -81,15 +100,13 @@ public class Piece : MonoBehaviour
         int originalRotation = rotationIndex;
         Vector3Int originalPosition = position;
 
-        board.Clear(this); 
+        board.Clear(this);
 
         rotationIndex = Wrap(rotationIndex + direction, 0, 4);
         ApplyRotationMatrix(direction);
 
-
         if (!TestWallKicks(originalRotation, direction))
         {
-
             rotationIndex = originalRotation;
             ApplyRotationMatrix(-direction);
             position = originalPosition;
@@ -101,30 +118,48 @@ public class Piece : MonoBehaviour
         return true;
     }
 
+private void ApplyRotationMatrix(int direction)
+{
 
-    private void ApplyRotationMatrix(int direction)
+    for (int i = 0; i < cells.Length; i++)
     {
-        float[] matrix = Data.RotationMatrix;
-        for (int i = 0; i < cells.Length; i++)
+        Vector3 cell = cells[i];
+        float x = cell.x;
+        float y = cell.y;
+        if (data.tetromino == Tetromino.I || data.tetromino == Tetromino.O)
         {
-            Vector3 cell = cells[i];
-            int x, y;
-            switch (data.tetromino)
-            {
-                case Tetromino.I:
-                case Tetromino.O:
-                    cell.x -= 0.5f; cell.y -= 0.5f;
-                    x = Mathf.CeilToInt((cell.x * matrix[0] * direction) + (cell.y * matrix[1] * direction));
-                    y = Mathf.CeilToInt((cell.x * matrix[2] * direction) + (cell.y * matrix[3] * direction));
-                    break;
-                default:
-                    x = Mathf.RoundToInt((cell.x * matrix[0] * direction) + (cell.y * matrix[1] * direction));
-                    y = Mathf.RoundToInt((cell.x * matrix[2] * direction) + (cell.y * matrix[3] * direction));
-                    break;
-            }
-            cells[i] = new Vector3Int(x, y, 0);
+            x -= 0.5f;
+            y -= 0.5f;
         }
+
+        float rotatedX;
+        float rotatedY;
+
+        if (direction > 0)
+        {
+            rotatedX = -y;
+            rotatedY = x;
+        }
+        else
+        {
+            rotatedX = y;
+            rotatedY = -x;
+        }
+
+
+        if (data.tetromino == Tetromino.I || data.tetromino == Tetromino.O)
+        {
+            rotatedX += 0.5f;
+            rotatedY += 0.5f;
+        }
+
+
+        int finalX = Mathf.RoundToInt(rotatedX);
+        int finalY = Mathf.RoundToInt(rotatedY);
+
+        cells[i] = new Vector3Int(finalX, finalY, 0);
     }
+}
 
     private bool TestWallKicks(int rotationIndex, int rotationDirection)
     {
@@ -147,8 +182,11 @@ public class Piece : MonoBehaviour
         foreach (var cell in cells)
         {
             Vector3Int pos = cell + testPos;
-            if (!bounds.Contains((Vector2Int)pos)) return false;
-            if (board.tilemap.HasTile(pos)) return false;
+            if (!bounds.Contains((Vector2Int)pos))
+                return false;
+
+            if (board.tilemap.HasTile(pos))
+                return false;
         }
         return true;
     }
@@ -156,13 +194,15 @@ public class Piece : MonoBehaviour
     private int GetWallKickIndex(int rIndex, int rDir)
     {
         int wIndex = rIndex * 2;
-        if (rDir < 0) wIndex--;
+        if (rDir < 0)
+            wIndex--;
         return Wrap(wIndex, 0, data.wallKicks.GetLength(0));
     }
 
     private int Wrap(int input, int min, int max)
     {
-        if (input < min) return max - (min - input) % (max - min);
+        if (input < min)
+            return max - (min - input) % (max - min);
         return min + (input - min) % (max - min);
     }
 }

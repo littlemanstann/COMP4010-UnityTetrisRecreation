@@ -5,32 +5,30 @@ using System.Collections.Generic;
 [DefaultExecutionOrder(-1)]
 public class Board : MonoBehaviour
 {
-
     [Header("Configuration")]
     public TetrominoData[] tetrominoes;
     public Tile garbageTile;
-    public Tile ghostTile; 
+    public Tile ghostTile;
     public Vector3Int spawnPosition = new Vector3Int(-1, 8, 0);
     public Vector2Int boardSize = new Vector2Int(10, 20);
 
     public float pendingReward = 0f;
     private int previousHoleCount = 0;
 
-
     public Tilemap tilemap { get; private set; }
     public Piece activePiece { get; private set; }
-    public StateSocketClient socketClient; 
+    public StateSocketClient socketClient;
 
     public HashSet<Vector3Int> activePositions = new HashSet<Vector3Int>();
     public bool gameOver = false;
     public float lastReward = 0f;
-    
 
     public int normalLinesCleared = 0;
     public int garbageLinesCleared = 0;
 
     private List<Tetromino> bag = new List<Tetromino>();
-    public bool sevenBag = true; 
+    public bool sevenBag = true;
+
     public RectInt Bounds
     {
         get
@@ -46,14 +44,20 @@ public class Board : MonoBehaviour
         activePiece = GetComponentInChildren<Piece>();
         socketClient = GetComponent<StateSocketClient>();
 
-        for (int i = 0; i < tetrominoes.Length; i++) tetrominoes[i].Initialize();
+        for (int i = 0; i < tetrominoes.Length; i++)
+        {
+            tetrominoes[i].Initialize();
+        }
         InitializeBag();
     }
 
     private void InitializeBag()
     {
         bag.Clear();
-        for (int i = 0; i < tetrominoes.Length; i++) bag.Add(tetrominoes[i].tetromino);
+        for (int i = 0; i < tetrominoes.Length; i++)
+        {
+            bag.Add(tetrominoes[i].tetromino);
+        }
     }
 
     public void ResetForEpisode()
@@ -62,16 +66,15 @@ public class Board : MonoBehaviour
         gameOver = false;
         normalLinesCleared = 0;
         garbageLinesCleared = 0;
-            
+
         tilemap.ClearAllTiles();
         activePositions.Clear();
-            
-        CreateGarbageLines(3); 
+
+        CreateGarbageLines(3);
         SpawnPiece();
 
         previousHoleCount = CountHoles();
     }
-
 
     public void SpawnPiece()
     {
@@ -80,11 +83,11 @@ public class Board : MonoBehaviour
 
         if (IsValidPosition(activePiece, spawnPosition))
         {
-            Set(activePiece, false); 
+            Set(activePiece, false);
         }
         else
         {
-            gameOver = true; 
+            gameOver = true;
         }
     }
 
@@ -99,72 +102,48 @@ public class Board : MonoBehaviour
 
         if (sevenBag)
         {
-            if (bag.Count == 0) InitializeBag();
+            if (bag.Count == 0)
+                InitializeBag();
+
             int index = Random.Range(0, bag.Count);
             Tetromino type = bag[index];
-            
-            foreach (var t in tetrominoes) {
-                if (t.tetromino == type) { data = t; break; }
+
+            foreach (var t in tetrominoes)
+            {
+                if (t.tetromino == type)
+                {
+                    data = t;
+                    break;
+                }
             }
         }
         else
         {
             data = tetrominoes[Random.Range(0, tetrominoes.Length)];
         }
+
         return data;
     }
+
+    /// <summary>
+    /// Draws the piece tiles on the tilemap.
+    /// No reward logic here.
+    /// </summary>
     public void Set(Piece piece, bool locked)
     {
-
         for (int i = 0; i < piece.cells.Length; i++)
         {
             Vector3Int tilePos = piece.cells[i] + piece.position;
+
             if (!locked)
-            {
                 activePositions.Add(tilePos);
-            }
-            int maxH = GetMaxHeight();
-            AddReward(-maxH * 0.02f);
+
             tilemap.SetTile(tilePos, piece.data.tile);
         }
 
         if (socketClient != null)
             socketClient.SendData();
-
-
-        if (locked)
-        {
-            float reward = 0.1f; 
-
-
-            int before = previousHoleCount;
-            int after = CountHoles();
-
-            int deltaHoles = after - before;
-            if (deltaHoles < 0)
-            {
-                reward += (-deltaHoles) * 0.3f; 
-            }
-            else if (deltaHoles > 0)
-            {
-                reward -= deltaHoles * 0.2f;     
-            }
-
-            int maxHeight = GetMaxHeight();
-            reward -= maxHeight * 0.01f;
-
-            int[] diffs = GetContourDiffs();
-            float bumpiness = 0f;
-            for (int i = 0; i < diffs.Length; i++)
-            {
-                bumpiness += Mathf.Abs(diffs[i]);
-            }
-            reward -= bumpiness * 0.005f;
-            AddReward(reward);
-            previousHoleCount = after;
-        }
     }
-
 
     public void Clear(Piece piece)
     {
@@ -179,16 +158,26 @@ public class Board : MonoBehaviour
     public bool IsValidPosition(Piece piece, Vector3Int position)
     {
         RectInt bounds = Bounds;
+
         for (int i = 0; i < piece.cells.Length; i++)
         {
             Vector3Int tilePos = piece.cells[i] + position;
-            if (!bounds.Contains((Vector2Int)tilePos)) return false;
-            if (tilemap.HasTile(tilePos)) return false;
+
+            if (!bounds.Contains((Vector2Int)tilePos))
+                return false;
+
+            if (tilemap.HasTile(tilePos))
+                return false;
         }
+
         return true;
     }
 
-    public void ClearLines()
+    /// <summary>
+    /// Clears all full lines and returns how many lines were cleared.
+    /// No reward added here; only board state + counters.
+    /// </summary>
+    public int ClearLines()
     {
         RectInt bounds = Bounds;
         int row = bounds.yMin;
@@ -203,43 +192,34 @@ public class Board : MonoBehaviour
                 cleared++;
 
                 if (isGarbage)
-                {
                     garbage++;
-                    AddReward(1.0f); 
-                }
 
+                // do not increment row; we want to re-check same index after collapse
             }
             else
             {
-                row++;  
+                row++;
             }
         }
 
         int nonGarbage = cleared - garbage;
 
+        normalLinesCleared += nonGarbage;
+        garbageLinesCleared += garbage;
 
-        if (nonGarbage == 1) AddReward(1.0f);
-        else if (nonGarbage == 2) AddReward(3.0f);
-        else if (nonGarbage == 3) AddReward(5.0f);
-        else if (nonGarbage == 4) AddReward(8.0f);
+        if (socketClient != null && cleared > 0)
+            socketClient.SendData();
 
-        if (cleared > 0)
-        {
-            normalLinesCleared += nonGarbage;
-            garbageLinesCleared += garbage;
-
-            if (socketClient != null)
-                socketClient.SendData();
-        }
+        return cleared;
     }
-
 
     private bool IsLineFull(int row)
     {
         RectInt bounds = Bounds;
         for (int col = bounds.xMin; col < bounds.xMax; col++)
         {
-            if (!tilemap.HasTile(new Vector3Int(col, row, 0))) return false;
+            if (!tilemap.HasTile(new Vector3Int(col, row, 0)))
+                return false;
         }
         return true;
     }
@@ -252,7 +232,9 @@ public class Board : MonoBehaviour
         for (int col = bounds.xMin; col < bounds.xMax; col++)
         {
             Vector3Int pos = new Vector3Int(col, row, 0);
-            if (tilemap.GetTile(pos) == garbageTile) isGarbageLine = true;
+            if (tilemap.GetTile(pos) == garbageTile)
+                isGarbageLine = true;
+
             tilemap.SetTile(pos, null);
         }
 
@@ -266,6 +248,7 @@ public class Board : MonoBehaviour
             }
             row++;
         }
+
         return isGarbageLine;
     }
 
@@ -283,10 +266,13 @@ public class Board : MonoBehaviour
                     tilemap.SetTile(new Vector3Int(col, row, 0), below);
                 }
             }
+
             int hole = Random.Range(bounds.xMin, bounds.xMax);
             for (int col = bounds.xMin; col < bounds.xMax; col++)
             {
-                if (col == hole) continue;
+                if (col == hole)
+                    continue;
+
                 tilemap.SetTile(new Vector3Int(col, bounds.yMin, 0), garbageTile);
             }
         }
@@ -296,6 +282,7 @@ public class Board : MonoBehaviour
     {
         RectInt bounds = Bounds;
         int[] grid = new int[bounds.height * bounds.width];
+
         for (int row = bounds.yMin; row < bounds.yMax; row++)
         {
             for (int col = bounds.xMin; col < bounds.xMax; col++)
@@ -303,14 +290,20 @@ public class Board : MonoBehaviour
                 Vector3Int pos = new Vector3Int(col, row, 0);
                 TileBase tile = tilemap.GetTile(pos);
                 int val = 0;
-                if (tile == null) val = 0;
-                else if (activePositions.Contains(pos)) val = 3;
-                else if (tile == garbageTile) val = 2;
-                else val = 1;
-                
+
+                if (tile == null)
+                    val = 0;
+                else if (activePositions.Contains(pos))
+                    val = 3;
+                else if (tile == garbageTile)
+                    val = 2;
+                else
+                    val = 1;
+
                 grid[(row - bounds.yMin) * bounds.width + (col - bounds.xMin)] = val;
             }
         }
+
         return grid;
     }
 
@@ -332,7 +325,8 @@ public class Board : MonoBehaviour
                 if (tile != null && tile != ghostTile)
                 {
                     currHeight = row - bounds.yMin + 1;
-                    if (col != bounds.xMin) {
+                    if (col != bounds.xMin)
+                    {
                         contour[index] = currHeight - prevHeight;
                         index++;
                     }
@@ -341,112 +335,231 @@ public class Board : MonoBehaviour
                 }
             }
         }
+
         return contour;
     }
 
     public char GetCurrentPieceChar()
     {
-        if (activePiece == null || activePiece.data.tetromino == 0) return ' ';
+        if (activePiece == null || activePiece.data.tetromino == 0)
+            return ' ';
         return activePiece.data.tetromino.ToString()[0];
     }
 
+    // ===== Heuristic helpers used for reward & observations =====
 
-
-
-//TESTERS
-
-public int[] GetColumnHeights()
-{
-    RectInt bounds = Bounds;
-    int width = bounds.width;
-    int height = bounds.height;
-
-    int[] heights = new int[width];
-
-    for (int x = 0; x < width; x++)
+    public int[] GetColumnHeights()
     {
-        int worldX = bounds.xMin + x;
+        RectInt bounds = Bounds;
+        int width = bounds.width;
+        int height = bounds.height;
 
-        for (int y = height - 1; y >= 0; y--)
+        int[] heights = new int[width];
+
+        for (int x = 0; x < width; x++)
         {
-            int worldY = bounds.yMin + y;
-            Vector3Int pos = new Vector3Int(worldX, worldY, 0);
+            int worldX = bounds.xMin + x;
 
-            if (tilemap.GetTile(pos) != null)
+            for (int y = height - 1; y >= 0; y--)
             {
-                heights[x] = y + 1;
-                break;
+                int worldY = bounds.yMin + y;
+                Vector3Int pos = new Vector3Int(worldX, worldY, 0);
+
+                if (tilemap.GetTile(pos) != null)
+                {
+                    heights[x] = y + 1;
+                    break;
+                }
             }
         }
+
+        return heights;
     }
-    return heights;
+
+    public int[] GetContourDiffs()
+    {
+        int[] h = GetColumnHeights();
+        int[] diffs = new int[h.Length - 1];
+
+        for (int i = 0; i < diffs.Length; i++)
+        {
+            diffs[i] = h[i + 1] - h[i];
+        }
+
+        return diffs;
+    }
+
+    public int CountHoles()
+    {
+        RectInt bounds = Bounds;
+        int width = bounds.width;
+        int height = bounds.height;
+
+        int holes = 0;
+
+        for (int x = 0; x < width; x++)
+        {
+            bool blockSeen = false;
+            int worldX = bounds.xMin + x;
+
+            for (int y = height - 1; y >= 0; y--)
+            {
+                int worldY = bounds.yMin + y;
+                Vector3Int pos = new Vector3Int(worldX, worldY, 0);
+                bool filled = tilemap.GetTile(pos) != null;
+
+                if (filled)
+                {
+                    blockSeen = true;
+                }
+                else if (blockSeen)
+                {
+                    holes++;
+                }
+            }
+        }
+
+        return holes;
+    }
+
+    public int GetMaxHeight()
+    {
+        int[] heights = GetColumnHeights();
+        int max = 0;
+
+        foreach (int h in heights)
+        {
+            if (h > max)
+                max = h;
+        }
+
+        return max;
+    }
+
+    // ===== RL Reward Accumulation =====
+
+    public void AddReward(float v)
+    {
+        lastReward += v;
+    }
+
+    public float ConsumeReward()
+    {
+        float r = lastReward;
+        lastReward = 0f;
+        return r;
+    }
+
+    public int GetCurrentPieceId()
+    {
+        return (activePiece == null) ? 0 : (int)activePiece.data.tetromino;
+    }
+
+    public int GetGarbageLinesCleared()
+    {
+        return garbageLinesCleared;
+    }
+
+    public int GetNormalLinesCleared()
+    {
+        return normalLinesCleared;
+    }
+public void SaveLastLockedPieceLocation(Piece piece)
+{
+    // Optional debug hook
 }
 
+// =====================
+// RL REWARD EVALUATION
+// =====================
 
-public int[] GetContourDiffs()
+public float EvaluatePlacement(Piece piece, int clearedLines)
 {
-    int[] h = GetColumnHeights();
-    int[] diffs = new int[h.Length - 1];
+    float reward = 0f;
+
+    // 1. Line clear rewards
+    reward += LineClearReward(clearedLines);
+
+    // 2. Hole delta penalty (gentle)
+    reward += HoleReward();
+
+    // 3. Height penalty (gentle)
+    reward += HeightPenalty();
+
+    // 4. Survival reward — every placement gives small positive reward
+    reward += 0.5f;
+
+    AddReward(reward);
+    return reward;
+}
+
+// -----------------
+// Line Clear Reward
+// -----------------
+private float LineClearReward(int lines)
+{
+    switch (lines)
+    {
+        case 1: return 100f;
+        case 2: return 300f;
+        case 3: return 500f;
+        case 4: return 1000f;
+        default: return 0f;
+    }
+}
+
+// -----------------
+// Hole Reward
+// -----------------
+private float HoleReward()
+{
+    int newHoles = CountHoles();
+    int delta = newHoles - previousHoleCount;
+
+    float reward = 0f;
+
+    if (delta > 0)
+        reward -= 0.4f * delta;   // Slight penalty for creating holes
+    else if (delta < 0)
+        reward += 0.3f * (-delta); // Reward for reducing holes
+
+    previousHoleCount = newHoles;
+    return reward;
+}
+
+// --------------------
+// Bumpiness Penalty
+// --------------------
+private float BumpinessPenalty()
+{
+    int[] diffs = GetContourDiffs();
+    float bumpiness = 0f;
+
     for (int i = 0; i < diffs.Length; i++)
-        diffs[i] = h[i + 1] - h[i];
-    return diffs;
+        bumpiness += Mathf.Abs(diffs[i]);
+
+    return -0.1f * bumpiness;
 }
 
-public int CountHoles()
+// --------------------
+// Height Penalty
+// --------------------
+private float HeightPenalty()
+{
+    int maxH = GetMaxHeight();
+    return -0.02f * maxH;
+}
+
+// -----------------------------
+// Landing Height Reward
+// -----------------------------
+private float LandingHeightReward(Piece piece)
 {
     RectInt bounds = Bounds;
-    int width = bounds.width;
-    int height = bounds.height;
+    int landingY = piece.position.y - bounds.yMin;
+    int boardHeight = bounds.height;
 
-    int holes = 0;
-
-    for (int x = 0; x < width; x++)
-    {
-        bool blockSeen = false;
-        int worldX = bounds.xMin + x;
-
-        for (int y = height - 1; y >= 0; y--)
-        {
-            int worldY = bounds.yMin + y;
-            Vector3Int pos = new Vector3Int(worldX, worldY, 0);
-            bool filled = tilemap.GetTile(pos) != null;
-
-            if (filled)
-            {
-                blockSeen = true;
-            }
-            else if (blockSeen)
-            {
-                holes++;
-            }
-        }
-    }
-    return holes;
+    // reward lower placements
+    return (boardHeight - landingY) * 0.2f;
 }
-
-
-public int GetMaxHeight()
-{
-    int[] heights = GetColumnHeights();
-    int max = 0;
-    foreach (int h in heights)
-        if (h > max) max = h;
-    return max;
-}
-
-
-
-    public void AddReward(float v) { lastReward += v; }
-    public float ConsumeReward() { float r = lastReward; lastReward = 0; return r; }
-    public int GetCurrentPieceId() { return (activePiece == null) ? 0 : (int)activePiece.data.tetromino; }
-    public int GetGarbageLinesCleared() { return garbageLinesCleared; }
-    public int GetNormalLinesCleared() { return normalLinesCleared; }
-    
-    public void SaveLastLockedPieceLocation(Piece piece) { }
-    
-    public void CalculatePlacementReward(Piece piece) 
-    { 
-        float reward = (float)(Bounds.yMax - piece.position.y) * 0.05f; 
-        AddReward(reward); 
-    }
 }
