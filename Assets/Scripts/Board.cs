@@ -17,7 +17,7 @@ public class Board : MonoBehaviour
 
     public Tilemap tilemap { get; private set; }
     public Piece activePiece { get; private set; }
-    public StateSocketClient socketClient;
+    // public StateSocketClient socketClient;
 
     public HashSet<Vector3Int> activePositions = new HashSet<Vector3Int>();
     public bool gameOver = false;
@@ -42,7 +42,7 @@ public class Board : MonoBehaviour
     {
         tilemap = GetComponentInChildren<Tilemap>();
         activePiece = GetComponentInChildren<Piece>();
-        socketClient = GetComponent<StateSocketClient>();
+        // socketClient = GetComponent<StateSocketClient>();
 
         for (int i = 0; i < tetrominoes.Length; i++)
         {
@@ -138,8 +138,9 @@ public class Board : MonoBehaviour
             tilemap.SetTile(tilePos, piece.data.tile);
         }
 
-        if (socketClient != null)
-            socketClient.SendData();
+    
+        // if (socketClient != null)
+        //     socketClient.SendData();
     }
 
     public void Clear(Piece piece)
@@ -199,8 +200,8 @@ public class Board : MonoBehaviour
         normalLinesCleared += nonGarbage;
         garbageLinesCleared += garbage;
 
-        if (socketClient != null && cleared > 0)
-            socketClient.SendData();
+        // if (socketClient != null && cleared > 0)
+        //     socketClient.SendData();
 
         return cleared;
     }
