@@ -25,6 +25,8 @@ public class Board : MonoBehaviour
 
     public int normalLinesCleared = 0;
     public int garbageLinesCleared = 0;
+    public int totalNormalLinesCleared = 0;
+    public int totalGarbageLinesCleared = 0;
 
     private List<Tetromino> bag = new List<Tetromino>();
     public bool sevenBag = true;
@@ -198,6 +200,8 @@ public class Board : MonoBehaviour
 
         normalLinesCleared += nonGarbage;
         garbageLinesCleared += garbage;
+        totalNormalLinesCleared += nonGarbage;
+        totalGarbageLinesCleared += garbage;
 
         if (socketClient != null && cleared > 0)
             socketClient.SendData();

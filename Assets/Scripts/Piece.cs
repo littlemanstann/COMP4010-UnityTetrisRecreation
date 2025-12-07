@@ -1,4 +1,6 @@
+using System;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class Piece : MonoBehaviour
 {
@@ -7,6 +9,7 @@ public class Piece : MonoBehaviour
     public Vector3Int[] cells { get; private set; }
     public Vector3Int position { get; private set; }
     public int rotationIndex { get; private set; }
+    public List<string> actionHistory = new List<string>();
 
     public void Initialize(Board board, Vector3Int position, TetrominoData data)
     {
@@ -26,17 +29,27 @@ public class Piece : MonoBehaviour
 
     public bool ApplyAction(int act)
     {
+        // Keep action history to last 8 actions
+        if (actionHistory.Count > 7)
+            // Remove oldest action
+            actionHistory.RemoveAt(0);
+
         switch (act)
         {
             case 0:
+                actionHistory.Add("Nothing");
                 return StepGravity();             
             case 1:
+                actionHistory.Add("Left");
                 return Move(Vector2Int.left);
             case 2:
+                actionHistory.Add("Right");
                 return Move(Vector2Int.right);
             case 3:
+                actionHistory.Add("Rotate");
                 return Rotate(1);
             case 4:
+                actionHistory.Add("Down");
                 return Move(Vector2Int.down);   
             //case 5:
              //   HardDrop();
@@ -74,9 +87,7 @@ public class Piece : MonoBehaviour
 
         board.UpdateBag();
         board.SpawnPiece();
-        Object.FindFirstObjectByType<TetrisAgent>()?.RequestDecision();
-
-
+        UnityEngine.Object.FindFirstObjectByType<TetrisAgent>()?.RequestDecision();
     }
 
     public bool Move(Vector2Int translation)

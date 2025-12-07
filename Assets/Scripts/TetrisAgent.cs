@@ -8,6 +8,9 @@ public class TetrisAgent : Agent
     [Header("References")]
     public Board board;
     public Piece piece;
+    public int currentEpisode = 0;
+    public int totalSteps = 0;
+    public int currentSteps = 0;
 
     public override void Initialize()
     {
@@ -23,6 +26,8 @@ public class TetrisAgent : Agent
         {
             board.ResetForEpisode();
         }
+        currentEpisode++;
+        currentSteps = 0;
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -78,6 +83,9 @@ public class TetrisAgent : Agent
             case 4: piece.ApplyAction(4); break; // soft drop
             // Hard drop intentionally disabled
         }
+
+        totalSteps++;
+        currentSteps++;
 
         // Always gravity
         piece.StepGravity();
